@@ -13,6 +13,7 @@ from sqlalchemy import (
     JSON,
     BigInteger,
     Boolean,
+    DateTime,
     ForeignKey,
     Index,
     Integer,
@@ -59,7 +60,7 @@ class ApiKey(Base, TimestampMixin):
     key_hash: Mapped[str] = mapped_column(String(64), nullable=False, unique=True)
     label: Mapped[str | None] = mapped_column(String(120), nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
-    last_used_at: Mapped[datetime | None] = mapped_column(nullable=True)
+    last_used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     partner: Mapped[Partner] = relationship(back_populates="api_keys")
 
@@ -130,8 +131,8 @@ class Task(Base, TimestampMixin):
     error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
     attempts: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
 
-    started_at: Mapped[datetime | None] = mapped_column(nullable=True)
-    finished_at: Mapped[datetime | None] = mapped_column(nullable=True)
+    started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     partner: Mapped[Partner | None] = relationship(back_populates="tasks")
 
