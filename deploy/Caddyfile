@@ -1,0 +1,14 @@
+# Automatic HTTPS for the API host (Caddy fetches Let's Encrypt certs on boot).
+# Replace api.example.com with your real domain (A-record → this server's IP).
+# HTTPS is REQUIRED so RunPod can call the /runpod/webhook/{secret} endpoint.
+
+api.example.com {
+	encode zstd gzip
+	# Bigger uploads (must be >= AIV_MAX_UPLOAD_MB).
+	request_body {
+		max_size 30MB
+	}
+	reverse_proxy api:8000 {
+		header_up X-Forwarded-Proto https
+	}
+}

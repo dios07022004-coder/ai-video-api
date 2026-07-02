@@ -1,0 +1,37 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.venv/
+venv/
+env/
+
+# Local config / secrets
+.env
+*.local
+
+# Data (runtime artifacts)
+data/
+!data/.gitkeep
+
+# Uploaded control videos live under config/control/, keep tree only
+config/control/*
+!config/control/.gitkeep
+
+# Logs
+*.log
+
+# IDE / OS
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Tests
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+htmlcov/
+.coverage

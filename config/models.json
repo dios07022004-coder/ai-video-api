@@ -1,0 +1,55 @@
+{
+  "_comment": "Real WAN 2.2 I2V models from the VirtuaVixen pack. `path` must match the filename in ComfyUI/models/<subdir>. Add a new action = add its two LoRAs here + a mode that binds them; the wan22_i2v workflow is reused.",
+  "models": [
+    {
+      "id": "dasiwa-i2v-high",
+      "name": "Dasiwa WAN 2.2 I2V 14B (High Noise)",
+      "type": "checkpoint",
+      "path": "DasiwaWAN22I2V14BHigh.safetensors",
+      "vram_gb": 14,
+      "compatible_workflows": ["wan22_i2v"],
+      "enabled": true
+    },
+    {
+      "id": "dasiwa-i2v-low",
+      "name": "Dasiwa WAN 2.2 I2V 14B (Low Noise)",
+      "type": "checkpoint",
+      "path": "DasiwaWAN22I2V14BLow.safetensors",
+      "vram_gb": 14,
+      "compatible_workflows": ["wan22_i2v"],
+      "enabled": true
+    },
+    {
+      "id": "umt5-clip",
+      "name": "UMT5-XXL (WAN text encoder)",
+      "type": "clip",
+      "path": "umt5_xxl_fp8_e4m3fn_scaled.safetensors",
+      "vram_gb": 7,
+      "enabled": true
+    },
+    {
+      "id": "wan-vae",
+      "name": "WAN 2.1 VAE",
+      "type": "vae",
+      "path": "wan_2.1_vae.safetensors",
+      "vram_gb": 0.3,
+      "enabled": true
+    },
+    {
+      "id": "lora-frenchkiss-high",
+      "name": "FrenchKiss action LoRA (High)",
+      "type": "lora",
+      "path": "WAN2.2-FrenchKiss_HighNoise.safetensors",
+      "vram_gb": 0.3,
+      "enabled": true
+    },
+    {
+      "id": "lora-frenchkiss-low",
+      "name": "FrenchKiss action LoRA (Low)",
+      "type": "lora",
+      "path": "WAN2.2-FrenchKiss_LowNoise.safetensors",
+      "vram_gb": 0.3,
+      "enabled": true
+    }
+  ]
+}

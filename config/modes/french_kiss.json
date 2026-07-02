@@ -1,0 +1,19 @@
+{
+  "id": "french_kiss",
+  "name": "French Kiss",
+  "description": "French Kiss (WAN 2.2 I2V). Prompt + settings are authored in the workflow; only the uploaded image and seed vary.",
+  "category": "i2v",
+  "task_type": "video",
+  "enabled": true,
+  "workflow": "french_kiss",
+  "model": "dasiwa-i2v-high",
+  "model_bindings": {},
+  "control_video": null,
+  "prompt_template": "{prompt}",
+  "negative_prompt": "",
+  "price_credits": 20,
+  "preview": "french_kiss.jpg",
+  "params": {
+    "SEED": { "type": "seed", "default": -1, "overridable": true }
+  }
+}

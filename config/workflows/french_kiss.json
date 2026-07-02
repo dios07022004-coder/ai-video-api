@@ -1,0 +1,62 @@
+{
+  "28": {
+    "inputs": { "filename_prefix": "video/ComfyUI", "format": "auto", "codec": "auto", "video-preview": "", "video": ["47", 0] },
+    "class_type": "SaveVideo",
+    "_meta": { "title": "Save Video" }
+  },
+  "29": {
+    "inputs": { "vae_name": "wan_2.1_vae.safetensors" },
+    "class_type": "VAELoader",
+    "_meta": { "title": "Load VAE" }
+  },
+  "31": {
+    "inputs": {
+      "width": ["43", 0], "height": ["43", 1], "length": 121, "batch_size": 1,
+      "positive": ["39", 0], "negative": ["41", 0], "vae": ["29", 0], "start_image": ["42", 0]
+    },
+    "class_type": "WanImageToVideo",
+    "_meta": { "title": "WanImageToVideo" }
+  },
+  "32": { "inputs": { "shift": 8, "model": ["58", 0] }, "class_type": "ModelSamplingSD3", "_meta": { "title": "ModelSamplingSD3" } },
+  "33": { "inputs": { "shift": 8.000000000000002, "model": ["57", 0] }, "class_type": "ModelSamplingSD3", "_meta": { "title": "ModelSamplingSD3" } },
+  "34": {
+    "inputs": {
+      "add_noise": "enable", "noise_seed": "{{SEED}}", "steps": 6, "cfg": 1,
+      "sampler_name": "lcm", "scheduler": "beta", "start_at_step": 0, "end_at_step": 3,
+      "return_with_leftover_noise": "enable", "model": ["33", 0], "positive": ["31", 0], "negative": ["31", 1], "latent_image": ["31", 2]
+    },
+    "class_type": "KSamplerAdvanced",
+    "_meta": { "title": "KSampler (Advanced)" }
+  },
+  "35": {
+    "inputs": {
+      "add_noise": "disable", "noise_seed": "{{SEED}}", "steps": 6, "cfg": 1,
+      "sampler_name": "lcm", "scheduler": "beta", "start_at_step": 3, "end_at_step": 10000,
+      "return_with_leftover_noise": "disable", "model": ["32", 0], "positive": ["31", 0], "negative": ["31", 1], "latent_image": ["34", 0]
+    },
+    "class_type": "KSamplerAdvanced",
+    "_meta": { "title": "KSampler (Advanced)" }
+  },
+  "38": { "inputs": { "samples": ["35", 0], "vae": ["29", 0] }, "class_type": "VAEDecode", "_meta": { "title": "VAE Decode" } },
+  "39": { "inputs": { "text": "a gentle romantic kiss, cinematic, smooth motion", "clip": ["56", 0] }, "class_type": "CLIPTextEncode", "_meta": { "title": "CLIP Text Encode (Positive Prompt)" } },
+  "41": { "inputs": { "text": "overexposed, static, blurred details, subtitles, worst quality, low quality, JPEG compression residue, ugly, deformed, disfigured, extra fingers, poorly drawn hands, poorly drawn faces, messy background", "clip": ["56", 0] }, "class_type": "CLIPTextEncode", "_meta": { "title": "CLIP Text Encode (Negative Prompt)" } },
+  "42": { "inputs": { "upscale_method": "lanczos", "largest_size": 832, "image": ["52", 0] }, "class_type": "ImageScaleToMaxDimension", "_meta": { "title": "ImageScaleToMaxDimension" } },
+  "43": { "inputs": { "image": ["42", 0] }, "class_type": "GetImageSize", "_meta": { "title": "Get Image Size" } },
+  "47": { "inputs": { "fps": 40, "images": ["49", 0] }, "class_type": "CreateVideo", "_meta": { "title": "Create Video" } },
+  "49": {
+    "inputs": {
+      "ckpt_name": "rife47.pth", "clear_cache_after_n_frames": 16, "multiplier": 3, "fast_mode": true,
+      "ensemble": true, "scale_factor": 1, "dtype": "float32", "torch_compile": false, "batch_size": 1, "frames": ["51", 0]
+    },
+    "class_type": "RIFE VFI",
+    "_meta": { "title": "RIFE VFI (recommend rife47 and rife49)" }
+  },
+  "50": { "inputs": { "upscale_method": "lanczos", "scale_by": 2, "image": ["38", 0] }, "class_type": "ImageScaleBy", "_meta": { "title": "Upscale Image By" } },
+  "51": { "inputs": { "anything": ["50", 0] }, "class_type": "easy cleanGpuUsed", "_meta": { "title": "Clean VRAM Used" } },
+  "52": { "inputs": { "image": "{{IMAGE}}" }, "class_type": "LoadImage", "_meta": { "title": "Load Image" } },
+  "54": { "inputs": { "ckpt_name": "DasiwaWAN22I2V14BHigh.safetensors" }, "class_type": "CheckpointLoaderSimple", "_meta": { "title": "Load Checkpoint" } },
+  "55": { "inputs": { "ckpt_name": "DasiwaWAN22I2V14BLow.safetensors" }, "class_type": "CheckpointLoaderSimple", "_meta": { "title": "Load Checkpoint" } },
+  "56": { "inputs": { "clip_name": "umt5_xxl_fp8_e4m3fn_scaled.safetensors", "type": "wan", "device": "default" }, "class_type": "CLIPLoader", "_meta": { "title": "Load CLIP" } },
+  "57": { "inputs": { "lora_name": "WAN2.2-FrenchKiss_HighNoise.safetensors", "strength_model": 0.8, "model": ["54", 0] }, "class_type": "LoraLoaderModelOnly", "_meta": { "title": "Load LoRA" } },
+  "58": { "inputs": { "lora_name": "WAN2.2-FrenchKiss_LowNoise.safetensors", "strength_model": 0.8, "model": ["55", 0] }, "class_type": "LoraLoaderModelOnly", "_meta": { "title": "Load LoRA" } }
+}

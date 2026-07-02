@@ -1,0 +1,73 @@
+# Local / single-node deployment.
+# For RunPod: run the `api` image with CMD=all (supervisord runs api+worker) and
+# point AIV_COMFY_HOST at the in-pod ComfyUI. ComfyUI itself is NOT built here —
+# it ships in the RunPod GPU image. The `comfyui` service below is a placeholder
+# you can enable if you run ComfyUI in its own container with a GPU.
+
+services:
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  api:
+    build: .
+    command: ["api"]
+    env_file: .env
+    environment:
+      AIV_REDIS_URL: redis://redis:6379/0
+      AIV_COMFY_HOST: ${AIV_COMFY_HOST:-host.docker.internal}
+    depends_on:
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./data:/workspace/api/data
+      - ./config:/workspace/api/config
+    ports:
+      - "8000:8000"
+
+  worker:
+    build: .
+    command: ["worker"]
+    env_file: .env
+    environment:
+      AIV_REDIS_URL: redis://redis:6379/0
+      AIV_COMFY_HOST: ${AIV_COMFY_HOST:-host.docker.internal}
+    depends_on:
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./data:/workspace/api/data
+      - ./config:/workspace/api/config
+    # For real GPU generation, run this on a CUDA host and enable:
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices: [{ capabilities: ["gpu"] }]
+
+  nginx:
+    image: nginx:1.27-alpine
+    depends_on: [api]
+    volumes:
+      - ./deploy/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./data:/workspace/api/data:ro
+    ports:
+      - "80:80"
+
+  # ── Optional: run ComfyUI in-compose (requires NVIDIA runtime) ──
+  # comfyui:
+  #   image: yourorg/comfyui:latest
+  #   ports: ["8188:8188"]
+  #   deploy:
+  #     resources:
+  #       reservations:
+  #         devices: [{ capabilities: ["gpu"] }]
+
+volumes:
+  redis-data:

@@ -1,0 +1,16 @@
+# Tells ComfyUI to load models from the RunPod network volume (/runpod-volume)
+# instead of the image. Upload your checkpoints/loras/vae/etc. to the volume once;
+# every cold start reuses them. Filenames here must match config/models.json `path`.
+runpod_volume:
+  base_path: /runpod-volume
+  checkpoints: models/checkpoints
+  loras: models/loras
+  vae: models/vae
+  clip: models/clip
+  clip_vision: models/clip_vision
+  controlnet: models/controlnet
+  ipadapter: models/ipadapter
+  upscale_models: models/upscale_models
+  embeddings: models/embeddings
+  diffusion_models: models/diffusion_models
+  unet: models/unet

@@ -1,0 +1,64 @@
+# Orchestrator deployment for Server 2 (Selectel CPU host).
+# API delegates generation to a RunPod Serverless endpoint (backend=runpod), so
+# there is NO GPU, NO ComfyUI and NO RQ worker here — just API + Postgres + TLS.
+#
+#   1) point your domain's A-record at this server
+#   2) edit deploy/Caddyfile (domain) and .env (RunPod creds, S3, secrets)
+#   3) docker compose -f docker-compose.selectel.yml up -d --build
+#   4) docker compose -f docker-compose.selectel.yml exec api \
+#        python -m scripts.manage create-partner --name "Site" --credits 100000
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: aivideo
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change-me}
+      POSTGRES_DB: aivideo
+    volumes:
+      - pg-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U aivideo"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis-data:/data
+
+  api:
+    build: .
+    command: ["api"]
+    env_file: .env
+    environment:
+      AIV_GENERATION_BACKEND: runpod
+      AIV_DATABASE_URL: postgresql+asyncpg://aivideo:${POSTGRES_PASSWORD:-change-me}@postgres:5432/aivideo
+      AIV_REDIS_URL: redis://redis:6379/0
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./config:/workspace/api/config
+      - ./data:/workspace/api/data     # only holds SQLite fallback + logs; videos live in S3
+    expose:
+      - "8000"
+
+  caddy:
+    image: caddy:2-alpine
+    depends_on: [api]
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+
+volumes:
+  pg-data:
+  redis-data:
+  caddy-data:
+  caddy-config:

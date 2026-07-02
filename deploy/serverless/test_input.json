@@ -1,0 +1,9 @@
+{
+  "input": {
+    "mode": "image_to_video",
+    "prompt": "a running horse, cinematic",
+    "image_url": "https://raw.githubusercontent.com/comfyanonymous/ComfyUI/master/tests-ui/tests/example.png",
+    "params": { "STEPS": 20, "FRAMES": 25, "FPS": 8, "SEED": 12345 },
+    "request_id": "local-test-1"
+  }
+}
