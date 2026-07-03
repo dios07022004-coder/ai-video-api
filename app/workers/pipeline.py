@@ -130,8 +130,17 @@ async def _execute(task_id: str) -> dict[str, Any]:
         logger.warning("generation_failed", code=exc.code.value, message=exc.message)
         return {"task_id": task_id, "status": "failed", "error": exc.code.value}
     except Exception as exc:  # noqa: BLE001 — never crash the worker loop
-        await _fail(task_id, code=ErrorCode.INTERNAL_ERROR, message="Unexpected worker error.")
-        logger.exception("generation_crashed", error=str(exc))
+        import traceback
+
+        tb = traceback.format_exc()
+        detail = f"{type(exc).__name__}: {exc}".strip()
+        await _fail(task_id, code=ErrorCode.INTERNAL_ERROR, message=f"Worker error: {detail}")
+        logger.error(
+            "generation_crashed",
+            error=repr(exc),
+            error_type=type(exc).__name__,
+            traceback=tb,
+        )
         return {"task_id": task_id, "status": "failed", "error": "INTERNAL_ERROR"}
     finally:
         if client is not None:
