@@ -17,14 +17,17 @@ from app.config.settings import Settings, get_settings
 class Endpoint:
     host: str
     port: int
+    secure: bool = False
 
     @property
     def base_url(self) -> str:
-        return f"http://{self.host}:{self.port}"
+        scheme = "https" if self.secure else "http"
+        return f"{scheme}://{self.host}:{self.port}"
 
     @property
     def ws_url(self) -> str:
-        return f"ws://{self.host}:{self.port}/ws"
+        scheme = "wss" if self.secure else "ws"
+        return f"{scheme}://{self.host}:{self.port}/ws"
 
     @property
     def label(self) -> str:
@@ -36,10 +39,9 @@ class EndpointPool:
         self._s = settings or get_settings()
         self._endpoints = [self._parse(e) for e in self._s.comfy_endpoint_list]
 
-    @staticmethod
-    def _parse(spec: str) -> Endpoint:
+    def _parse(self, spec: str) -> Endpoint:
         host, _, port = spec.partition(":")
-        return Endpoint(host=host, port=int(port or 8188))
+        return Endpoint(host=host, port=int(port or 8188), secure=self._s.comfy_https)
 
     @property
     def endpoints(self) -> list[Endpoint]:
