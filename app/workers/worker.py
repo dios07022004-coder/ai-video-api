@@ -27,7 +27,12 @@ async def _prepare() -> None:
     settings = get_settings()
     settings.ensure_directories()
     # Bootstrap schema for SQLite/dev; production uses migrations.
-    await get_database().create_all()
+    db = get_database()
+    await db.create_all()
+    # Dispose + drop the cached engine: it is bound to this startup loop, but each
+    # RQ job runs in its own loop and rebuilds a fresh engine (see pipeline.py).
+    await db.dispose()
+    get_database.cache_clear()
 
 
 def main() -> int:

@@ -21,7 +21,7 @@ from app.comfy.endpoints import EndpointPool
 from app.comfy.engine import WorkflowEngine
 from app.config.constants import ErrorCode
 from app.config.settings import get_settings
-from app.database import session_scope
+from app.database import get_database, session_scope
 from app.database.tables import Task
 from app.logging import bind_context, configure_logging, get_logger
 from app.models.enums import TaskStatus, is_terminal
@@ -49,7 +49,22 @@ def run_generation_job(task_id: str) -> dict[str, Any]:
         log_dir=settings.log_dir,
         service="worker",
     )
-    return asyncio.run(_execute(task_id))
+    # RQ runs every job in a fresh event loop. The async DB engine (asyncpg pool)
+    # is a process-wide singleton bound to the loop it was first used in, so reusing
+    # it across jobs raises "attached to a different loop". Drop the cached engine
+    # so a fresh one is built inside THIS job's loop, and dispose it when done.
+    get_database.cache_clear()
+    return asyncio.run(_run_job(task_id))
+
+
+async def _run_job(task_id: str) -> dict[str, Any]:
+    try:
+        return await _execute(task_id)
+    finally:
+        try:
+            await get_database().dispose()
+        except Exception:  # noqa: BLE001
+            pass
 
 
 async def _execute(task_id: str) -> dict[str, Any]:
