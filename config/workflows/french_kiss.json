@@ -46,7 +46,7 @@
   "49": {
     "inputs": {
       "ckpt_name": "rife47.pth", "clear_cache_after_n_frames": 16, "multiplier": 3, "fast_mode": true,
-      "ensemble": true, "scale_factor": 1, "dtype": "float32", "torch_compile": false, "batch_size": 1, "frames": ["51", 0]
+      "ensemble": true, "scale_factor": 1, "dtype": "float16", "torch_compile": false, "batch_size": 1, "frames": ["51", 0]
     },
     "class_type": "RIFE VFI",
     "_meta": { "title": "RIFE VFI (recommend rife47 and rife49)" }
