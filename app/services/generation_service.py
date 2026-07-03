@@ -45,6 +45,16 @@ class GenerationService:
         self._resolver = resolver or ParamResolver()
 
     async def create(self, partner_id: int | None, req: GenerateRequest) -> GenerateResponse:
+        # Log exactly what the caller asked for (helps diagnose partner mode
+        # mismatches — the requested mode string is echoed even on a 404).
+        logger.info(
+            "generate_intake",
+            mode=req.mode,
+            task_type=str(req.task_type),
+            user_id=req.user_id,
+            request_id=req.request_id,
+        )
+
         # Validate mode/params *before* opening the write transaction so bad
         # requests never touch the DB.
         mode = self._registry.get_mode(req.mode)
