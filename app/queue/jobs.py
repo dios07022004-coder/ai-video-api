@@ -22,7 +22,7 @@ def enqueue_generation(task_id: str) -> Job:
     return queue.enqueue(
         GENERATION_JOB,
         task_id,
-        job_id=f"gen:{task_id}",  # idempotent: re-enqueue of same task is a no-op-ish
+        job_id=f"gen-{task_id}",  # RQ job ids allow only [A-Za-z0-9_-]; idempotent per task
         retry=None,               # retries are handled inside the pipeline (domain-aware)
         result_ttl=settings.job_result_ttl_seconds,
         failure_ttl=settings.job_result_ttl_seconds,
