@@ -160,13 +160,6 @@ def import_one(
         else:
             warnings.append(f"{name}: negative prompt node not found")
 
-    # Memory optimization (visually identical): run RIFE frame-interpolation in
-    # float16. The interpolated-frame buffer (hundreds of upscaled frames) is the
-    # biggest RAM spike and OOMs the pod on the heavy tail; float16 halves it.
-    for node in graph.values():
-        if node.get("class_type") == "RIFE VFI" and node.get("inputs", {}).get("dtype") == "float32":
-            node["inputs"]["dtype"] = "float16"
-
     # SEED → random per request by default; --keep-seed leaves the author's value.
     if not keep_seed:
         seeds = 0
