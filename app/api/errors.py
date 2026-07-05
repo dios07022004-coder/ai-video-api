@@ -133,6 +133,12 @@ class UnsupportedMediaTypeError(AppError):
     message = "Unsupported media type."
 
 
+class AgeVerificationError(AppError):
+    code = ErrorCode.AGE_VERIFICATION_FAILED
+    http_status = status.HTTP_422_UNPROCESSABLE_ENTITY
+    message = "The person in the image appears to be under the minimum age."
+
+
 class ParamInvalidError(AppError):
     code = ErrorCode.PARAM_INVALID
     http_status = status.HTTP_422_UNPROCESSABLE_ENTITY

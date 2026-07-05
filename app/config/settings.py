@@ -41,6 +41,20 @@ class Settings(BaseSettings):
     max_image_pixels: int = 50_000_000
     callback_hmac_secret: str = "change-me-callback-signing-secret"
 
+    # ── Age gate (soft NSFW safety check on user uploads) ──
+    # A lightweight apparent-age estimate on each uploaded photo. NOT legal ID
+    # verification — it only blocks images whose youngest detected face looks
+    # clearly under `age_reject_below`. Off until deps are installed + enabled.
+    age_check_enabled: bool = False
+    age_min_years: int = 21          # platform's stated minimum (shown in the error)
+    age_reject_below: int = 18       # reject only if apparent age is under this (soft)
+    age_require_face: bool = False   # if True, also reject uploads with no detectable face
+    age_model_name: str = "buffalo_l"
+    age_det_size: int = 640
+    # Fail-open: if the model can't load/run, allow the upload (log a warning)
+    # rather than blocking real users on an infra hiccup.
+    age_fail_open: bool = True
+
     # ── Database ──
     database_url: str = "sqlite+aiosqlite:///./data/aivideo.db"
 

@@ -129,7 +129,7 @@ RateLimitDep = Depends(enforce_rate_limit)
 
 # ── Service factories (request-scoped) ───────────────────────────────────────
 def upload_service(session: SessionDep, storage: StorageDep, settings: SettingsDep) -> UploadService:
-    return UploadService(UploadRepository(session), ImageValidator(settings), storage)
+    return UploadService(UploadRepository(session), ImageValidator(settings), storage, settings)
 
 
 def task_service(session: SessionDep) -> TaskService:
