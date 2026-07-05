@@ -128,7 +128,12 @@ async def _execute(task_id: str) -> dict[str, Any]:
 
     except AppError as exc:
         await _fail(task_id, code=exc.code, message=exc.message)
-        logger.warning("generation_failed", code=exc.code.value, message=exc.message)
+        # Surface the underlying cause (e.g. the raw httpx error behind
+        # "Failed to upload input image to ComfyUI") — it was being dropped,
+        # leaving the real reason (connection refused vs 502 vs timeout) invisible.
+        logger.warning(
+            "generation_failed", code=exc.code.value, message=exc.message, details=exc.details
+        )
         return {"task_id": task_id, "status": "failed", "error": exc.code.value}
     except Exception as exc:  # noqa: BLE001 — never crash the worker loop
         import traceback
