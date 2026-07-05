@@ -37,6 +37,7 @@ from app.workflows.registry import get_registry
 logger = get_logger("workers.pipeline")
 
 _PROGRESS_FLUSH_INTERVAL = 1.5  # seconds between DB progress writes
+_LOST_PROMPT_GRACE = 90.0  # seconds a prompt may be absent from queue+history before it's declared lost
 
 
 # ── RQ entrypoint ────────────────────────────────────────────────────────────
@@ -177,6 +178,11 @@ async def _drive(
     watch_task = asyncio.create_task(client.watch(prompt_id, on_event))
 
     deadline = loop.time() + timeout
+    # ComfyUI keeps the in-flight prompt in /queue (running or pending) until it
+    # lands in /history. If it vanishes from BOTH for a sustained grace window,
+    # ComfyUI restarted (usually OOM-killed) and dropped the job — fail in ~90s
+    # instead of hanging until the full timeout.
+    last_present = loop.time()
     try:
         while True:
             history = await client.history(prompt_id)
@@ -184,6 +190,15 @@ async def _drive(
                 result = client.parse_result(prompt_id, history)  # raises on comfy error
                 if result.outputs:
                     return result
+                last_present = loop.time()
+            elif await _prompt_in_queue(client, prompt_id):
+                last_present = loop.time()
+            elif loop.time() - last_present > _LOST_PROMPT_GRACE:
+                raise ComfyExecutionError(
+                    "ComfyUI restarted mid-job — the prompt was lost, most likely "
+                    "an out-of-memory (OOM) crash. Please retry the generation.",
+                    details={"prompt_id": prompt_id},
+                )
             if loop.time() > deadline:
                 await client.interrupt()
                 raise GenerationTimeoutError(details={"prompt_id": prompt_id, "timeout": timeout})
@@ -194,6 +209,24 @@ async def _drive(
             await watch_task
         except (asyncio.CancelledError, Exception):  # noqa: BLE001
             pass
+
+
+async def _prompt_in_queue(client: ComfyClient, prompt_id: str) -> bool:
+    """True if the prompt is still running or pending in ComfyUI's queue.
+
+    A read failure returns True (assume still present) so a transient hiccup
+    never false-triggers the lost-prompt fast-fail — only a live, reachable
+    ComfyUI that no longer knows the prompt counts as 'lost'.
+    """
+    try:
+        q = await client.queue()
+    except Exception:  # noqa: BLE001
+        return True
+    for key in ("queue_running", "queue_pending"):
+        for entry in q.get(key, []):
+            if isinstance(entry, (list, tuple)) and len(entry) > 1 and entry[1] == prompt_id:
+                return True
+    return False
 
 
 # ── staging helpers ──────────────────────────────────────────────────────────
@@ -290,6 +323,11 @@ async def _complete(task_id: str, *, stored_url: str, stored_path: str, callback
         repo = TaskRepository(session)
         task = await repo.get_by_id(task_id)
         if task is None:
+            return
+        if is_terminal(task.status):
+            # User cancelled (or it already failed) while we were encoding — don't
+            # resurrect it to completed, and don't charge for a discarded result.
+            logger.info("result_discarded_terminal", status=task.status)
             return
         svc = TaskService(repo)
         await svc.mark_completed(task, result_url=stored_url, result_path=stored_path)

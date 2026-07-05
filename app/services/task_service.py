@@ -8,9 +8,10 @@ from app.api.errors import ForbiddenError, TaskNotFoundError
 from app.config.constants import ErrorCode
 from app.database.base import utcnow
 from app.database.tables import Partner, Task
-from app.models.enums import STATE_PROGRESS_FLOOR, TaskStatus, can_transition
+from app.models.enums import STATE_PROGRESS_FLOOR, TaskStatus, can_transition, is_terminal
 from app.repositories.tasks import TaskRepository
 from app.schemas.tasks import TaskStatusResponse
+from app.services.billing_service import BillingService
 
 
 class TaskService:
@@ -30,6 +31,54 @@ class TaskService:
             # Do not leak existence to other partners.
             raise TaskNotFoundError(details={"task_id": task_id})
         return self.to_status(task)
+
+    async def cancel(
+        self, task_id: str, partner: Partner | None, *, billing: BillingService | None
+    ) -> TaskStatusResponse:
+        """Stop a task from the UI: flip it to CANCELLED and refund the hold.
+
+        Idempotent — cancelling an already-terminal task just echoes its state.
+        Best-effort ComfyUI interrupt so a job that is actively running on the
+        GPU stops instead of finishing. The worker's own guards (``is_terminal``)
+        then no-op the rest of the pipeline.
+        """
+        task = await self.get(task_id)
+        if partner is not None and task.partner_id not in (None, partner.id):
+            raise TaskNotFoundError(details={"task_id": task_id})
+        if is_terminal(task.status):
+            return self.to_status(task)
+
+        await self.mark_cancelled(task)
+        if billing is not None and task.partner_id and task.price_credits > 0:
+            await billing.refund(
+                task.partner_id, task.price_credits, task_id=task.id, note="cancelled by user"
+            )
+        await self._interrupt_comfy(task)
+        return self.to_status(task)
+
+    @staticmethod
+    async def _interrupt_comfy(task: Task) -> None:
+        """Ask the task's ComfyUI endpoint to interrupt the running prompt.
+
+        Best-effort: any failure is swallowed — the DB cancel already stands and
+        the worker will discard the result once it sees the terminal state.
+        """
+        if not task.comfy_endpoint or ":" not in task.comfy_endpoint:
+            return
+        try:
+            from app.comfy.client import make_client
+            from app.comfy.endpoints import Endpoint
+            from app.config.settings import get_settings
+
+            host, _, port = task.comfy_endpoint.partition(":")
+            ep = Endpoint(host=host, port=int(port or 8188), secure=get_settings().comfy_https)
+            client = make_client(ep.base_url, ep.ws_url, suffix="cancel")
+            try:
+                await client.interrupt()
+            finally:
+                await client.aclose()
+        except Exception:  # noqa: BLE001
+            pass
 
     def to_status(self, task: Task) -> TaskStatusResponse:
         return TaskStatusResponse(
