@@ -122,11 +122,17 @@ class ComfyClient:
             raise ComfyUnavailableError(details={"error": str(exc)}) from exc
 
         if resp.status_code == 400:
-            # Graph validation error from ComfyUI — surface node errors safely.
+            # Graph validation error from ComfyUI. Capture BOTH the top-level
+            # ``error`` (global reasons — missing output, bad prompt, unknown
+            # node — which leave ``node_errors`` empty) and the per-node
+            # ``node_errors``, so the failure is never a mystery in the logs.
             detail = _safe_json(resp)
+            comfy_error = detail.get("error")
+            reason = comfy_error.get("message") if isinstance(comfy_error, dict) else comfy_error
             raise ComfyExecutionError(
-                "ComfyUI rejected the workflow graph.",
-                details={"node_errors": detail.get("node_errors", detail)},
+                f"ComfyUI rejected the workflow graph: {reason}" if reason
+                else "ComfyUI rejected the workflow graph.",
+                details={"error": comfy_error, "node_errors": detail.get("node_errors")},
             )
         if resp.status_code >= 500:
             raise ComfyUnavailableError(details={"status": resp.status_code})
